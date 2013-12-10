@@ -26,14 +26,20 @@ package org.apache.gora.cassandra.store;
 import java.io.IOException;
 
 import org.apache.gora.cassandra.GoraCassandraTestDriver;
+import org.apache.gora.examples.WebPageDataCreator;
 import org.apache.gora.examples.generated.Employee;
 import org.apache.gora.examples.generated.WebPage;
+import org.apache.gora.query.Query;
+import org.apache.gora.query.Result;
 import org.apache.gora.store.DataStore;
 import org.apache.gora.store.DataStoreFactory;
 import org.apache.gora.store.DataStoreTestBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Test;
+
+import static junit.framework.Assert.assertNotNull;
 
 /**
  * Test for CassandraStore.
@@ -65,6 +71,22 @@ public class TestCassandraStore extends DataStoreTestBase{
 
   public GoraCassandraTestDriver getTestDriver() {
     return (GoraCassandraTestDriver) testDriver;
+  }
+
+  @Test
+  public void verifyPartitions() throws Exception {
+      DataStore store = DataStoreFactory.getDataStore(CassandraStore.class, String.class, WebPage.class, conf);
+      WebPageDataCreator.createWebPageData(store);
+      Query<String, WebPage> query = store.newQuery();
+      query.setFields("url","content");
+      Result<String, WebPage> result = query.execute();
+      while(result.next()) {
+          log.info("key: {}", result.getKey());
+
+      }
+
+      assertNotNull(result);
+      store.getPartitions(query);
   }
 
 

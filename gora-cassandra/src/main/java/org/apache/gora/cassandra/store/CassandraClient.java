@@ -30,6 +30,8 @@ import me.prettyprint.cassandra.serializers.ByteBufferSerializer;
 import me.prettyprint.cassandra.serializers.IntegerSerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.service.CassandraHostConfigurator;
+import me.prettyprint.cassandra.service.Operation;
+import me.prettyprint.cassandra.service.OperationType;
 import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.beans.OrderedRows;
@@ -51,6 +53,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericArray;
 import org.apache.avro.util.Utf8;
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.gora.cassandra.query.CassandraQuery;
 import org.apache.gora.cassandra.serializers.GenericArraySerializer;
 import org.apache.gora.cassandra.serializers.GoraSerializerTypeInferer;
@@ -87,7 +90,6 @@ public class CassandraClient<K, T extends PersistentBase> {
     // LOG.info("persistentClass=" + persistentClass.getName() + " -> cassandraMapping=" + cassandraMapping);
 
     this.cluster = HFactory.getOrCreateCluster(this.cassandraMapping.getClusterName(), new CassandraHostConfigurator(this.cassandraMapping.getHostName()));
-    
     // add keyspace to cluster
     checkKeyspace();
     
@@ -104,6 +106,13 @@ public class CassandraClient<K, T extends PersistentBase> {
   public boolean keyspaceExists() {
     KeyspaceDefinition keyspaceDefinition = this.cluster.describeKeyspace(this.cassandraMapping.getKeyspaceName());
     return (keyspaceDefinition != null);
+  }
+
+
+  public Map<String,String> describeTokenMap() {
+      DescribeTokenMapOperation dtmo = new DescribeTokenMapOperation();
+      cluster.getConnectionManager().operateWithFailover(dtmo);
+      return dtmo.getResult();
   }
   
   /**
@@ -351,7 +360,12 @@ public class CassandraClient<K, T extends PersistentBase> {
    * @return a list of family rows
    */
   public List<Row<K, ByteBuffer, ByteBuffer>> execute(CassandraQuery<K, T> cassandraQuery, String family) {
-    
+
+      // TODO same as describeTokenMap: if we have tokens as opposed to keys, we'll build the slice for
+      // thrift by hand so we can use startToken/endToken
+      // 1. build KeyRange with startToken, endToken
+      // 2. use get_range_slices with tokened KeyRange
+
     String[] columnNames = cassandraQuery.getColumns(family);
     ByteBuffer[] columnNameByteBuffers = new ByteBuffer[columnNames.length];
     for (int i = 0; i < columnNames.length; i++) {
@@ -481,4 +495,16 @@ public class CassandraClient<K, T extends PersistentBase> {
   public String getKeyspaceName() {
 	return this.cassandraMapping.getKeyspaceName();
   }
+
+    class DescribeTokenMapOperation extends Operation<Map<String,String>> {
+
+        public DescribeTokenMapOperation() {
+            super(OperationType.READ);
+        }
+
+        @Override
+        public Map<String,String> execute(Cassandra.Client cassandra) throws Exception {
+            return cassandra.describe_token_map(); // TODO verify structure on different topology
+        }
+    }
 }

@@ -290,11 +290,23 @@ public class CassandraStore<K, T extends PersistentBase> extends DataStoreBase<K
   @Override
   public List<PartitionQuery<K, T>> getPartitions(Query<K, T> query)
       throws IOException {
-    // just a single partition
+
+    // TODO build partition queries with startKey, endKey based on ranges
+    // This will probably require a class extension of PartitionQuery so we can
+    // detect this type via instanceof and toggle to get_range_slice with Tokens
+    // instead of keys
+    Map<String,String> tokenMap = this.cassandraClient.describeTokenMap();
+    // we want to use describe_token_map (CASSANDRA-4092)
     List<PartitionQuery<K,T>> partitions = new ArrayList<PartitionQuery<K,T>>();
-    PartitionQueryImpl<K, T> pqi = new PartitionQueryImpl<K, T>(query);
-    pqi.setConf(getConf());
-    partitions.add(pqi);
+    for (Map.Entry<String,String> entry : tokenMap.entrySet()) {
+
+        PartitionQueryImpl<K, T> pqi = new PartitionQueryImpl<K, T>(query);
+        //pqi.setStartKey(entry.getValue());
+        pqi.setConf(getConf());
+        partitions.add(pqi);
+
+    }
+
     return partitions;
   }
   
