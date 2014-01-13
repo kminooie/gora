@@ -297,12 +297,17 @@ public class CassandraStore<K, T extends PersistentBase> extends DataStoreBase<K
     // instead of keys
     Map<String,String> tokenMap = this.cassandraClient.describeTokenMap();
     // we want to use describe_token_map (CASSANDRA-4092)
+    // TODO for vnodes, this will need to be different and requires the output of describe_ring
+    // the parsing for such is more complicated as well, that will need to be in a utility class
     List<PartitionQuery<K,T>> partitions = new ArrayList<PartitionQuery<K,T>>();
     for (Map.Entry<String,String> entry : tokenMap.entrySet()) {
 
         PartitionQueryImpl<K, T> pqi = new PartitionQueryImpl<K, T>(query);
-        //pqi.setStartKey(entry.getValue());
+        // TODO switch to the c-tor which takes:
+        // baseQuery, startKey, endKey, locations[]
+        //
         pqi.setConf(getConf());
+
         partitions.add(pqi);
 
     }

@@ -496,6 +496,8 @@ public class CassandraClient<K, T extends PersistentBase> {
 	return this.cassandraMapping.getKeyspaceName();
   }
 
+    // TODO change to describe_ring for vnode support
+    // see comments on CassandraStore#getPartitions for more info
     class DescribeTokenMapOperation extends Operation<Map<String,String>> {
 
         public DescribeTokenMapOperation() {
