@@ -29,6 +29,7 @@ import org.apache.gora.store.DataStore;
 public class CassandraQuery<K, T extends PersistentBase> extends QueryBase<K, T> {
 
   private Query<K, T> query;
+  private boolean useTokens;
   
   /**
    * Maps Avro fields to Cassandra columns.
@@ -67,7 +68,12 @@ public class CassandraQuery<K, T extends PersistentBase> extends QueryBase<K, T>
   public void setQuery(Query<K, T> query) {
     this.query = query;
   }
-  
-  
 
+    public boolean getUseTokens() {
+        return useTokens;
+    }
+
+    public void setUseTokens(boolean useTokens) {
+        this.useTokens = useTokens;
+    }
 }

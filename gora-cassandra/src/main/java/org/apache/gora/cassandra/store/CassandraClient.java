@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 import me.prettyprint.cassandra.model.ConfigurableConsistencyLevel;
+import me.prettyprint.cassandra.model.thrift.ThriftRangeSlicesQuery;
 import me.prettyprint.cassandra.serializers.ByteBufferSerializer;
 import me.prettyprint.cassandra.serializers.IntegerSerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
@@ -386,7 +387,12 @@ public class CassandraClient<K, T extends PersistentBase> {
     
     RangeSlicesQuery<K, ByteBuffer, ByteBuffer> rangeSlicesQuery = HFactory.createRangeSlicesQuery(this.keyspace, this.keySerializer, ByteBufferSerializer.get(), ByteBufferSerializer.get());
     rangeSlicesQuery.setColumnFamily(family);
-    rangeSlicesQuery.setKeys(startKey, endKey);
+    if ( cassandraQuery.getUseTokens() ){
+        // this is pretty ewww, but tokens are always strings, sooo...
+        ((ThriftRangeSlicesQuery)rangeSlicesQuery).setTokens(null, (String)startKey, (String)endKey);
+    } else {
+      rangeSlicesQuery.setKeys(startKey, endKey);
+    }
     rangeSlicesQuery.setRange(ByteBuffer.wrap(new byte[0]), ByteBuffer.wrap(new byte[0]), false, GoraRecordReader.BUFFER_LIMIT_READ_VALUE);
     rangeSlicesQuery.setRowCount(limit);
     rangeSlicesQuery.setColumnNames(columnNameByteBuffers);

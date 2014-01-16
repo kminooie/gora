@@ -291,6 +291,10 @@ public class CassandraStore<K, T extends PersistentBase> extends DataStoreBase<K
   @Override
   public List<PartitionQuery<K, T>> getPartitions(Query<K, T> query)
       throws IOException {
+
+    if ( query instanceof CassandraQuery ) {
+        ((CassandraQuery) query).setUseTokens(true);
+    }
     List<TokenRange> tokenRanges = cassandraClient.describeRing();
 
     // for vnodes, this requires the output of describe_ring
