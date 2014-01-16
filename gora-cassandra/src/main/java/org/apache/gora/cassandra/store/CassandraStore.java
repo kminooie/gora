@@ -41,6 +41,7 @@ import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericArray;
 import org.apache.avro.util.Utf8;
+import org.apache.cassandra.thrift.TokenRange;
 import org.apache.gora.cassandra.query.CassandraQuery;
 import org.apache.gora.cassandra.query.CassandraResult;
 import org.apache.gora.cassandra.query.CassandraResultSet;
@@ -290,28 +291,19 @@ public class CassandraStore<K, T extends PersistentBase> extends DataStoreBase<K
   @Override
   public List<PartitionQuery<K, T>> getPartitions(Query<K, T> query)
       throws IOException {
+    List<TokenRange> tokenRanges = cassandraClient.describeRing();
 
-    // TODO build partition queries with startKey, endKey based on ranges
-    // This will probably require a class extension of PartitionQuery so we can
-    // detect this type via instanceof and toggle to get_range_slice with Tokens
-    // instead of keys
-    Map<String,String> tokenMap = this.cassandraClient.describeTokenMap();
-    // we want to use describe_token_map (CASSANDRA-4092)
-    // TODO for vnodes, this will need to be different and requires the output of describe_ring
-    // the parsing for such is more complicated as well, that will need to be in a utility class
-    List<PartitionQuery<K,T>> partitions = new ArrayList<PartitionQuery<K,T>>();
-    for (Map.Entry<String,String> entry : tokenMap.entrySet()) {
-
-        PartitionQueryImpl<K, T> pqi = new PartitionQueryImpl<K, T>(query);
-        // TODO switch to the c-tor which takes:
-        // baseQuery, startKey, endKey, locations[]
-        //
+    // for vnodes, this requires the output of describe_ring
+    List<PartitionQuery<K,T>> partitions = new ArrayList<PartitionQuery<K,T>>(tokenRanges.size());
+    for (TokenRange tr : tokenRanges) {
+        PartitionQueryImpl pqi =
+                new PartitionQueryImpl<K,T>(query,
+                        tr.endpoints.toArray(new String[tr.endpoints.size()]));
+        pqi.setStartKey(tr.getStart_token());
+        pqi.setEndKey(tr.getEnd_token());
         pqi.setConf(getConf());
-
         partitions.add(pqi);
-
     }
-
     return partitions;
   }
   

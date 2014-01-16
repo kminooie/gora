@@ -19,11 +19,7 @@
 package org.apache.gora.cassandra.store;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import me.prettyprint.cassandra.model.ConfigurableConsistencyLevel;
 import me.prettyprint.cassandra.serializers.ByteBufferSerializer;
@@ -54,6 +50,9 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericArray;
 import org.apache.avro.util.Utf8;
 import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.Column;
+import org.apache.cassandra.thrift.KeySlice;
+import org.apache.cassandra.thrift.TokenRange;
 import org.apache.gora.cassandra.query.CassandraQuery;
 import org.apache.gora.cassandra.serializers.GenericArraySerializer;
 import org.apache.gora.cassandra.serializers.GoraSerializerTypeInferer;
@@ -113,6 +112,12 @@ public class CassandraClient<K, T extends PersistentBase> {
       DescribeTokenMapOperation dtmo = new DescribeTokenMapOperation();
       cluster.getConnectionManager().operateWithFailover(dtmo);
       return dtmo.getResult();
+  }
+
+  public List<TokenRange> describeRing() {
+      DescribeRingOperation dro = new DescribeRingOperation();
+      cluster.getConnectionManager().operateWithFailover(dro);
+      return dro.getResult();
   }
   
   /**
@@ -501,7 +506,7 @@ public class CassandraClient<K, T extends PersistentBase> {
     class DescribeTokenMapOperation extends Operation<Map<String,String>> {
 
         public DescribeTokenMapOperation() {
-            super(OperationType.READ);
+            super(OperationType.META_READ);
         }
 
         @Override
@@ -509,4 +514,17 @@ public class CassandraClient<K, T extends PersistentBase> {
             return cassandra.describe_token_map(); // TODO verify structure on different topology
         }
     }
+
+    class DescribeRingOperation extends Operation<List<TokenRange>> {
+        public DescribeRingOperation() {
+            super(OperationType.META_READ);
+        }
+
+        @Override
+        public List<TokenRange> execute(Cassandra.Client cassandra) throws Exception {
+            return cassandra.describe_ring(cassandraMapping.getKeyspaceName());
+
+        }
+    }
+
 }
