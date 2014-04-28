@@ -598,7 +598,7 @@
         <!-- Cassandra Dependencies -->
         <cassandra.version>1.1.2</cassandra.version>
         <libthrift.version>0.7.0</libthrift.version>
-        <hector.version>1.1-0</hector.version>
+        <hector.version>1.1-4</hector.version>
         <!-- Solr Dependencies -->
         <lucene-solr.version>4.3.0</lucene-solr.version>
         <solr-solrj.version>4.3.0</solr-solrj.version>
